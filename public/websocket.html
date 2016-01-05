@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>webSocketTest</title>
+    <style>
+        .msg {
+            min-height: 300px;
+            border: 1px solid green;
+        }
+
+        .content {
+            width: 100%;
+            height: 50px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="msg"></div>
+<textarea class="content" placeholder="type something..."></textarea>
+<button id="btnSend">Send</button>
+
+
+<script type="text/javascript">
+    var msgContainer = document.querySelector('.msg');
+    var contentEl = document.querySelector('.content');
+
+    var socket = new WebSocket('ws://localhost:1337');
+
+    socket.onopen = function () {
+        socket.send('hello from the client');
+    };
+
+    socket.onmessage = function (message) {
+        msgContainer.innerHTML += message.data + '<br />';
+    };
+
+    socket.onerror = function (error) {
+        console.log('WebSocket error: ' + error);
+    };
+
+
+    btnSend.addEventListener('click', sendMsgHandler, false);
+    contentEl.addEventListener('keydown', contentKeyDownHandler, false);
+
+    function sendMsgHandler(e) {
+        var value = contentEl.value;
+        if (value) {
+            contentEl.value = '';
+            socket.send(value);
+        }
+    }
+
+    function contentKeyDownHandler(e) {
+        if (e.keyCode == 13) {//enter key
+            sendMsgHandler();
+        }
+    }
+
+</script>
+</body>
+</html>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>webSocketTest</title>
+    <style>
+        .msg {
+            min-height: 300px;
+            border: 1px solid green;
+        }
+
+        .content {
+            width: 100%;
+            height: 50px;
+        }
+
+    </style>
+</head>
+<body>
+
+<div>
+    <input type="radio" name="room" value="room1" checked>普通间
+    <input type="radio" name="room" value="room2">豪华间
+</div>
+<div class="msg"></div>
+<textarea class="content" placeholder="type something..."></textarea>
+<button id="btnSend">Send Self</button>
+<button id="btnBroadCast">BroadCast</button>
+<button id="btnChatBroadCast">Room BroadCast</button>
+<button id="btnClear">Clear</button>
+
+<script src="frm/socket.io.js"></script>
+<script>
+    var log = console.log.bind(console);
+
+    function $(selector) {
+        return document.querySelector(selector);
+    }
+
+    function init() {
+        var msgEl = $('.msg'), textEl = $('.content'),
+            btnSend = $('#btnSend'),
+            btnBroadCast = $('#btnBroadCast'),
+            btnChatBroadCast = $('#btnChatBroadCast'),
+            btnClear = $('#btnClear');
+
+        textEl.addEventListener('keydown', function (e) {
+            if (e.keyCode == 13) {//enter
+                log('enter key event');
+                sendMsgHandler();
+            }
+        }, false);
+
+        btnSend.addEventListener('click', sendMsgHandler);
+        btnBroadCast.addEventListener('click', broadCastMsgHandler);
+        btnChatBroadCast.addEventListener('click', btnChatBroadCastHandler);
+        btnClear.addEventListener('click', clearMsg);
+
+        function appendMsg(value) {
+            msgEl.innerHTML += (value || '') + '<br/>';
+        }
+
+        function sendMsgHandler() {
+            if (textEl.value) {
+                var value = textEl.value;
+                textEl.value = '';
+                socket.emit('private', value);
+            }
+        }
+
+        function broadCastMsgHandler() {
+            if (textEl.value) {
+                var value = textEl.value;
+                textEl.value = '';
+                socket.emit('public', {type: 'BROADCAST', message: value});
+            }
+        }
+
+        function btnChatBroadCastHandler() {
+            if (textEl.value) {
+                var value = textEl.value;
+                textEl.value = '';
+                socket.emit('public', {type: 'BROADCAST_ROOM', room: currentRoom, message: value});
+            }
+        }
+
+        function clearMsg() {
+            msgEl.innerHTML = '';
+        }
+
+        var roomEls = document.querySelectorAll('input[name=room]');
+        var currentRoom = $('input[name=room]:checked').value;
+
+        function roomChangeHandler(e) {
+            if (currentRoom === e.target.value) {
+                return;
+            }
+            var beforeRoom = currentRoom;
+            currentRoom = e.target.value;
+            socket.emit('private', {type: 'CHANGE_ROOM', room: currentRoom, beforeRoom: beforeRoom});
+        }
+
+        for (var i = 0; i < roomEls.length; i++) {
+            roomEls[i].addEventListener('click', roomChangeHandler);
+        }
+
+
+        var socket = io('ws://localhost:3000/my-websocket');
+
+        socket.on('connect', function () {
+            appendMsg('Client has connected to the server!');
+
+            //链接到指定房间
+            socket.emit('private', {type: 'INIT_ROOM', room: currentRoom});
+        });
+
+        socket.on('public', function (data) {
+            appendMsg(data);
+        });
+        // private 渠道
+        socket.on('private', function (data) {
+            appendMsg(data);
+        });
+
+        socket.on('disconnect', function (data) {
+            appendMsg(data)
+        });
+
+    }
+
+
+    document.addEventListener('DOMContentLoaded', init);
+</script>
+
+
+</body>
+</html>
